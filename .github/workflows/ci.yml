@@ -15,16 +15,18 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: "1.24.x"
           cache: true
 
-      - name: Download modules
-        run: go mod download
+      # go.sum doesn't exist yet in this repo — tidy creates it
+      - name: Tidy modules
+        run: go mod tidy
 
       - name: Lint
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
+          args: --timeout=5m
 
       - name: Test
         run: go test -race -coverprofile=coverage.out ./...
