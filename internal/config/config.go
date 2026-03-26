@@ -5,35 +5,46 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
 	Port         string
-	DatabaseURL  string
-	JWTSecret    string
+	RoutingFile  string
 	AllowOrigins string
+	RateLimitRPS float64
+}
 
-	MinioEndpoint  string
-	MinioAccessKey string
-	MinioSecretKey string
-	MinioBucket    string
-	MinioUseSSL    bool
+type Route struct {
+	Name    string `yaml:"name"`
+	Prefix  string `yaml:"prefix"`
+	Backend string `yaml:"backend"`
+}
+
+type routingFile struct {
+	Routes []Route `yaml:"routes"`
 }
 
 func Load() *Config {
 	_ = godotenv.Load()
 	return &Config{
 		Port:         getEnv("PORT", "8080"),
-		DatabaseURL:  mustEnv("DATABASE_URL"),
-		JWTSecret:    mustEnv("JWT_SECRET"),
-		AllowOrigins: getEnv("ALLOW_ORIGINS", "http://localhost:3000"),
-
-		MinioEndpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
-		MinioAccessKey: getEnv("MINIO_ACCESS_KEY", "minioadmin"),
-		MinioSecretKey: getEnv("MINIO_SECRET_KEY", "minioadmin"),
-		MinioBucket:    getEnv("MINIO_BUCKET", "inventory"),
-		MinioUseSSL:    getEnv("MINIO_USE_SSL", "false") == "true",
+		RoutingFile:  getEnv("ROUTING_FILE", "routing.yaml"),
+		AllowOrigins: getEnv("ALLOW_ORIGINS", "https://jcrlabs.net"),
+		RateLimitRPS: 100,
 	}
+}
+
+func LoadRoutes(path string) []Route {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		log.Fatalf("read routing file %q: %v", path, err)
+	}
+	var rf routingFile
+	if err = yaml.Unmarshal(data, &rf); err != nil {
+		log.Fatalf("parse routing file: %v", err)
+	}
+	return rf.Routes
 }
 
 func getEnv(key, fallback string) string {
@@ -41,12 +52,4 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
-}
-
-func mustEnv(key string) string {
-	v := os.Getenv(key)
-	if v == "" {
-		log.Fatalf("required env var %q is not set", key)
-	}
-	return v
 }

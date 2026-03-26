@@ -1,0 +1,16 @@
+routes:
+  - name: inventory
+    prefix: /api/inventory
+    backend: http://inventory-back.taller-inventario.svc.cluster.local:8080
+  - name: blog
+    prefix: /api/blog
+    backend: http://blog-cms-back.blog.svc.cluster.local:3000
+  - name: chat
+    prefix: /api/chat
+    backend: http://chat-back.chat.svc.cluster.local:8080
+  - name: devops
+    prefix: /api/devops
+    backend: http://devops-dashboard.monitoring.svc.cluster.local:8080
+  - name: fincontrol
+    prefix: /api/fin
+    backend: http://fincontrol-back.fincontrol.svc.cluster.local:8080

@@ -1,59 +1,65 @@
-# CLAUDE.md — inventory-back
+# CLAUDE.md — portfolio-gateway (API Gateway)
 
 > Extiende: `SHARED-CLAUDE.md`
-> Dominio: `invent-back.jcrlabs.net` | Namespace K8s: `taller-inventario`
+> Dominio: `api.jcrlabs.net` | Namespace K8s: `portfolio`
 
 ## Qué es esto
 
-Backend del sistema de inventario. JWT auth (HS256), RBAC (Admin/Manager/Viewer),
-CRUD productos con upload de imágenes a MinIO, dashboard de estadísticas.
+API Gateway centralizado del portfolio. Routing declarativo vía YAML,
+middleware chain completa, health check agregado y métricas Prometheus.
 
 ## Stack
 
 - **Language**: Go 1.24
-- **Framework**: Gin
-- **ORM**: GORM + PostgreSQL 17
-- **Storage**: MinIO (S3-compatible) con presigned URLs
-- **Auth**: JWT HS256 — access token 15 min (Bearer), refresh token 7 d (httpOnly cookie)
-- **Deploy**: Namespace `taller-inventario` (prod) / `taller-inventario-test` (test)
+- **HTTP**: net/http stdlib + httputil.ReverseProxy
+- **Rate limit**: golang.org/x/time/rate (100 rps/IP)
+- **Métricas**: prometheus/client_golang (histograma latencia + counter requests)
+- **Logging**: slog (stdlib JSON)
+- **Config**: routing.yaml + godotenv
 
 ## Estructura
 
 ```
-cmd/main.go              # entrypoint — config + wiring + router
+cmd/main.go                  # entrypoint — wiring + http.ListenAndServe
 internal/
-├── config/config.go     # env vars (godotenv)
-├── db/db.go             # GORM connect + AutoMigrate
-├── domain/models.go     # User, Product, Category, RefreshToken
-├── repository/          # GORM repositories (user, product, category)
-├── service/             # auth, product, minio, category
-├── handler/             # HTTP handlers (auth, product, category, health)
-└── middleware/          # JWT, RBAC, RateLimit, CORS, Logger, RequestID
-migrations/001_init.sql  # referencia SQL (AutoMigrate lo gestiona)
-deploy/helm/             # Chart + values-test.yaml + values-prod.yaml
-.github/workflows/       # CI/CD pipeline
+├── config/config.go         # env vars + LoadRoutes(routing.yaml)
+├── gateway/
+│   ├── proxy.go             # NewMux — registra rutas con strip prefix
+│   ├── middleware.go        # RequestID, Logger, CORS, RateLimit, Recover, Metrics
+│   └── health.go            # /healthz — consulta /api/health de cada backend
+└── metrics/
+    └── metrics.go           # Prometheus histogram + counter + promhttp.Handler
+routing.yaml                 # config declarativa de rutas
+deploy/helm/                 # Chart + values-test.yaml + values-prod.yaml
+.github/workflows/ci.yml     # CI/CD pipeline
 ```
 
-## RBAC
+## Routing declarativo (routing.yaml)
 
-| Acción | Admin | Manager | Viewer |
-|--------|-------|---------|--------|
-| GET productos/categorías | ✅ | ✅ | ✅ |
-| POST/PUT productos/categorías | ✅ | ✅ | ❌ |
-| DELETE | ✅ | ❌ | ❌ |
-| Upload imagen | ✅ | ✅ | ❌ |
-| Dashboard stats | ✅ | ✅ | ✅ |
+```yaml
+routes:
+  - name: inventory
+    prefix: /api/inventory
+    backend: http://inventory-back.taller-inventario.svc.cluster.local:8080
+```
 
-## Flujo de request
+El gateway hace strip del prefix antes de hacer forward.
+
+## Middleware chain
 
 ```
-Request → CORS → RequestID → Logger → RateLimit (auth) → JWT → RoleCheck → Handler
+Request → RequestID → Logger(slog) → CORS → RateLimit(100rps/IP)
+        → Recover → Metrics(histogram) → ReverseProxy
 ```
+
+## Endpoints propios
+
+- `GET /healthz` — estado agregado de todos los backends registrados
+- `GET /metrics` — Prometheus scrape endpoint
 
 ## Qué NO hacer
 
-- No GraphQL — REST es suficiente
-- No Redis para rate limiting — in-memory suficiente para el tráfico esperado
-- No soft deletes — delete es delete
-- No caché — inventario necesita datos en tiempo real
-- No gin-contrib/cors — CORS propio para control exacto de headers de seguridad
+- No Gin/Echo — net/http es suficiente para un proxy stateless
+- No base de datos — el gateway es stateless por diseño
+- No autenticación — cada backend maneja su propia auth
+- No circuit breaker — el portfolio no requiere esa complejidad ahora
