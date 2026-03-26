@@ -28,9 +28,10 @@ type routingFile struct {
 func Load() *Config {
 	_ = godotenv.Load()
 	return &Config{
-		Port:         getEnv("PORT", "8080"),
-		RoutingFile:  getEnv("ROUTING_FILE", "routing.yaml"),
-		AllowOrigins: getEnv("ALLOW_ORIGINS", "https://jcrlabs.net"),
+		Port:        getEnv("PORT", "8080"),
+		RoutingFile: getEnv("ROUTING_FILE", "routing.yaml"),
+		// Allowed origins per CLAUDE.md
+		AllowOrigins: getEnv("ALLOW_ORIGINS", "https://home.jcrlabs.net,https://home-test.jcrlabs.net,http://localhost:3000"),
 		RateLimitRPS: 100,
 	}
 }
