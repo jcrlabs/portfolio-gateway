@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jonathanCaamano/portfolio-gateway/internal/metrics"
 	"golang.org/x/time/rate"
+
+	"github.com/jonathanCaamano/portfolio-gateway/internal/metrics"
 )
 
 // chain wraps h with middlewares so the first one in the list executes first.
@@ -80,13 +81,13 @@ func withCORS(allowOrigins string) func(http.Handler) http.Handler {
 type ipLimiter struct {
 	mu       sync.Mutex
 	limiters map[string]*rate.Limiter
-	rps      rate.Limit
+	rips      rate.Limit
 }
 
 func newIPLimiter(rps float64) *ipLimiter {
 	return &ipLimiter{
 		limiters: make(map[string]*rate.Limiter),
-		rps:      rate.Limit(rps),
+		rips:      rate.Limit(rps),
 	}
 }
 

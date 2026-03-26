@@ -31,7 +31,7 @@ func healthHandler(routes []config.Route, log *slog.Logger) http.Handler {
 				overall = "degraded"
 			}
 			if resp != nil {
-				resp.Body.Close()
+				_ = resp.Body.Close()
 			}
 			results = append(results, backendStatus{
 				Name:      route.Name,
