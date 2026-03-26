@@ -4,7 +4,7 @@ image:
   tag: v1.0.0
 
 ingress:
-  host: api.jcrlabs.net
+  host: portfolio-api.jcrlabs.net
 
 hpa:
   minReplicas: 2
