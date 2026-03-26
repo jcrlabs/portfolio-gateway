@@ -81,13 +81,13 @@ func withCORS(allowOrigins string) func(http.Handler) http.Handler {
 type ipLimiter struct {
 	mu       sync.Mutex
 	limiters map[string]*rate.Limiter
-	rips      rate.Limit
+	rps      rate.Limit
 }
 
 func newIPLimiter(rps float64) *ipLimiter {
 	return &ipLimiter{
 		limiters: make(map[string]*rate.Limiter),
-		rips:      rate.Limit(rps),
+		rps:      rate.Limit(rps),
 	}
 }
 
