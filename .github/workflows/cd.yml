@@ -53,9 +53,13 @@ jobs:
         env:
           ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
           ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+          GHCR_PULL_SECRET_ENCRYPTED: ${{ secrets.GHCR_PULL_SECRET_ENCRYPTED }}
         run: |
           curl -sL https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64 \
             -o /usr/local/bin/argocd && chmod +x /usr/local/bin/argocd
+          argocd app set portfolio-gateway-test \
+            --helm-set "image.pullSecretEncrypted=$GHCR_PULL_SECRET_ENCRYPTED" \
+            --server $ARGOCD_SERVER --auth-token $ARGOCD_TOKEN --grpc-web
           argocd app sync portfolio-gateway-test \
             --server $ARGOCD_SERVER --auth-token $ARGOCD_TOKEN --grpc-web
 
@@ -98,9 +102,13 @@ jobs:
         env:
           ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
           ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+          GHCR_PULL_SECRET_ENCRYPTED: ${{ secrets.GHCR_PULL_SECRET_ENCRYPTED }}
         run: |
           curl -sL https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64 \
             -o /usr/local/bin/argocd && chmod +x /usr/local/bin/argocd
+          argocd app set portfolio-gateway \
+            --helm-set "image.pullSecretEncrypted=$GHCR_PULL_SECRET_ENCRYPTED" \
+            --server $ARGOCD_SERVER --auth-token $ARGOCD_TOKEN --grpc-web
           argocd app sync portfolio-gateway \
             --server $ARGOCD_SERVER --auth-token $ARGOCD_TOKEN --grpc-web
 
