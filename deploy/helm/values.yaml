@@ -4,6 +4,7 @@ image:
   repository: ghcr.io/jcrlabs/portfolio-gateway
   pullPolicy: IfNotPresent
   tag: ""
+  pullSecretName: ghcr-pull-secret
 
 service:
   type: ClusterIP
