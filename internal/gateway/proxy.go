@@ -31,6 +31,11 @@ func NewMux(routes []config.Route, cfg *config.Config, log *slog.Logger, m *metr
 	}
 
 	mux.Handle("/healthz", healthHandler(routes, log))
+	mux.HandleFunc("/livez", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	})
 	mux.Handle("/metrics", m.Handler())
 
 	return mux
