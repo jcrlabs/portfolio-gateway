@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  tag: develop-a059953
+  tag: develop-abe2658
 
 ingress:
   host: portfolio-api-test.jcrlabs.net
