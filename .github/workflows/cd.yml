@@ -78,20 +78,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & push (semver)
+      - name: Build & push (SHA)
         run: |
-          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
-          docker build -t $REGISTRY/$IMAGE:$VERSION .
-          docker push $REGISTRY/$IMAGE:$VERSION
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          SHA=$(git rev-parse --short HEAD)
+          docker build -t $REGISTRY/$IMAGE:$SHA .
+          docker push $REGISTRY/$IMAGE:$SHA
+          echo "SHA=$SHA" >> $GITHUB_ENV
 
       - name: Update values-prod.yaml
         run: |
-          sed -i "s/tag: .*/tag: $VERSION/" deploy/helm/values-prod.yaml
+          sed -i "s/tag: .*/tag: $SHA/" deploy/helm/values-prod.yaml
           git config user.email "ci@jcrlabs.net"
           git config user.name "CI Bot"
           git add deploy/helm/values-prod.yaml
-          git diff --staged --quiet || git commit -m "chore: release $VERSION"
+          git diff --staged --quiet || git commit -m "chore: deploy $SHA to prod"
           git push
 
       - name: ArgoCD sync (prod namespace)
