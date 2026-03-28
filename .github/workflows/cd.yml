@@ -53,14 +53,9 @@ jobs:
         env:
           ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
           ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
-          GHCR_PULL_SECRET_ENCRYPTED: ${{ secrets.GHCR_PULL_SECRET_ENCRYPTED }}
         run: |
           curl -sL https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64 \
             -o /usr/local/bin/argocd && chmod +x /usr/local/bin/argocd
-          PULL_SECRET=$(printf '%s' "$GHCR_PULL_SECRET_ENCRYPTED" | tr -d '[:space:]')
-          argocd app set portfolio-gateway-test \
-            --helm-set "image.pullSecretEncrypted=$PULL_SECRET" \
-            --server $ARGOCD_SERVER --auth-token $ARGOCD_TOKEN --grpc-web
           argocd app sync portfolio-gateway-test \
             --server $ARGOCD_SERVER --auth-token $ARGOCD_TOKEN --grpc-web
 
@@ -103,14 +98,9 @@ jobs:
         env:
           ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
           ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
-          GHCR_PULL_SECRET_ENCRYPTED: ${{ secrets.GHCR_PULL_SECRET_ENCRYPTED }}
         run: |
           curl -sL https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64 \
             -o /usr/local/bin/argocd && chmod +x /usr/local/bin/argocd
-          PULL_SECRET=$(printf '%s' "$GHCR_PULL_SECRET_ENCRYPTED" | tr -d '[:space:]')
-          argocd app set portfolio-gateway \
-            --helm-set "image.pullSecretEncrypted=$PULL_SECRET" \
-            --server $ARGOCD_SERVER --auth-token $ARGOCD_TOKEN --grpc-web
           argocd app sync portfolio-gateway \
             --server $ARGOCD_SERVER --auth-token $ARGOCD_TOKEN --grpc-web
 
@@ -121,5 +111,11 @@ jobs:
           echo "$KUBECONFIG_DATA" | base64 -d > /tmp/kc
           KUBECONFIG=/tmp/kc kubectl rollout status deployment/portfolio-gateway \
             -n portfolio --timeout=5m || \
-          (KUBECONFIG=/tmp/kc kubectl rollout undo deployment/portfolio-gateway \
-            -n portfolio && exit 1)
+          {
+            echo "=== Rollout failed — pod diagnostics ==="
+            KUBECONFIG=/tmp/kc kubectl get pods -n portfolio -l app.kubernetes.io/name=portfolio-gateway
+            KUBECONFIG=/tmp/kc kubectl describe pods -n portfolio -l app.kubernetes.io/name=portfolio-gateway | tail -40
+            KUBECONFIG=/tmp/kc kubectl get events -n portfolio --sort-by='.lastTimestamp' | tail -20
+            KUBECONFIG=/tmp/kc kubectl rollout undo deployment/portfolio-gateway -n portfolio
+            exit 1
+          }
