@@ -73,27 +73,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Calculate next semver
+      - name: Read version
         run: |
-          LATEST=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
-          [ -z "$LATEST" ] && LATEST="v0.0.0"
-          vmaj=$(echo "${LATEST#v}" | cut -d. -f1)
-          vmin=$(echo "${LATEST#v}" | cut -d. -f2)
-          vpatch=$(echo "${LATEST#v}" | cut -d. -f3)
-          if [ "$LATEST" = "v0.0.0" ]; then
-            COMMITS=$(git log --pretty=format:"%s")
-          else
-            COMMITS=$(git log "${LATEST}..HEAD" --pretty=format:"%s")
-          fi
-          if printf '%s\n' "$COMMITS" | grep -qE '^[a-z]+(\([^)]*\))?!:|^BREAKING CHANGE:'; then
-            VERSION="v$((vmaj+1)).0.0"
-          elif printf '%s\n' "$COMMITS" | grep -qE '^feat(\([^)]*\))?:'; then
-            VERSION="v${vmaj}.$((vmin+1)).0"
-          else
-            VERSION="v${vmaj}.${vmin}.$((vpatch+1))"
-          fi
+          VERSION="v$(cat VERSION)"
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
-          echo "Bump: ${LATEST} → ${VERSION}"
+          echo "Version: ${VERSION}"
 
       - name: Build & push (${{ env.VERSION }})
         run: |
