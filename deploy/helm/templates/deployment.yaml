@@ -32,14 +32,15 @@ spec:
               value: "8080"
             - name: ROUTING_FILE
               value: /routing.yaml
+          {{- if .Values.secretName }}
           envFrom:
             - secretRef:
                 name: {{ .Values.secretName }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:
-            httpGet:
-              path: /healthz
+            tcpSocket:
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 30
