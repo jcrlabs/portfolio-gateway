@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"log/slog"
+	"net"
 	"net/http"
 	"runtime/debug"
 	"strings"
@@ -85,9 +86,26 @@ type ipLimiter struct {
 }
 
 func newIPLimiter(rps float64) *ipLimiter {
-	return &ipLimiter{
+	l := &ipLimiter{
 		limiters: make(map[string]*rate.Limiter),
 		rps:      rate.Limit(rps),
+	}
+	go l.cleanup()
+	return l
+}
+
+func (l *ipLimiter) cleanup() {
+	ticker := time.NewTicker(10 * time.Minute)
+	defer ticker.Stop()
+	for range ticker.C {
+		l.mu.Lock()
+		for ip, lim := range l.limiters {
+			// Remove entries whose bucket is full — they've been idle long enough.
+			if lim.Tokens() >= float64(int(l.rps)) {
+				delete(l.limiters, ip)
+			}
+		}
+		l.mu.Unlock()
 	}
 }
 
@@ -152,7 +170,11 @@ func (sw *statusWriter) WriteHeader(code int) {
 
 func clientIP(r *http.Request) string {
 	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		return strings.SplitN(fwd, ",", 2)[0]
+		return strings.TrimSpace(strings.SplitN(fwd, ",", 2)[0])
+	}
+	// RemoteAddr is host:port — strip the port.
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return host
 	}
 	return r.RemoteAddr
 }
