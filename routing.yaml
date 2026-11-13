@@ -1,7 +1,7 @@
 routes:
   - name: inventory
     prefix: /api/inventory
-    backend: http://inventory-back.taller-inventario.svc.cluster.local:8080
+    backend: http://inventory-back.inventory.svc.cluster.local:8080
   - name: blog
     prefix: /api/blog
     backend: http://blog-back.blog.svc.cluster.local:3000
